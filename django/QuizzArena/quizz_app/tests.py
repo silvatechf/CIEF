@@ -119,7 +119,7 @@ class QuizAuthenticationTest(TestCase):
 
     def test_quiz_result_persists_timing_metrics(self):
         """Question timings, total, and average are saved with the quiz result."""
-        user = User.objects.create_user(username='alumno_tiempos', password='clave-segura-123')
+        user = User.objects.create_user(username='nombre_alumno', password='tu_clave')
         quiz = Quiz.objects.create(
             title='Quiz cronometrado',
             description='Prueba de tiempos',
