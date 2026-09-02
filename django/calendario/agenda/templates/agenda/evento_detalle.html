@@ -1,0 +1,66 @@
+{% extends "agenda/base.html" %}
+
+{% block title %}
+{{ evento.titulo }} | Mi Agenda
+{% endblock %}
+
+{% block content %}
+<section class="detalle-container">
+    <div class="detalle-header">
+        <div>
+            <h1>{{ evento.titulo }}</h1>
+            <p>Detalles del evento y ubicación.</p>
+        </div>
+        <a href="{% url 'eventos' %}" class="boton ghost">Volver</a>
+    </div>
+
+    <div class="detalle-card">
+        <div class="detalle-grid">
+            <div class="detalle-info">
+                <div class="detalle-meta">
+                    {% for categoria in evento.categoria.all %}
+                    <span class="badge">{{ categoria.nombre }}</span>
+                    {% empty %}
+                    <span class="badge">General</span>
+                    {% endfor %}
+                    {% if evento.ubicacion %}
+                    <span class="ubicacion">📍 {{ evento.ubicacion }}</span>
+                    {% endif %}
+                </div>
+
+                <p><strong>Inicio:</strong> {{ evento.fecha_inicio|date:"d M Y, H:i" }}</p>
+                <p><strong>Fin:</strong> {{ evento.fecha_fin|date:"d M Y, H:i" }}</p>
+                <p><strong>Duración:</strong> {{ evento.duracion_horas|floatformat:1 }} horas</p>
+
+                {% if evento.descripcion %}
+                <div>
+                    <h3>Descripción</h3>
+                    <p>{{ evento.descripcion }}</p>
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{% url 'evento_editar' evento.pk %}" class="btn-editar">Editar</a>
+                    <form action="{% url 'evento_eliminar' evento.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-eliminar"
+                            onclick="return confirm('¿Deseas eliminar este evento?')">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mapa">
+                {% if evento.ubicacion %}
+                <iframe src="https://www.google.com/maps?q={{ evento.ubicacion|urlencode }}&output=embed" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade" title="Ubicación del evento">
+                </iframe>
+                {% else %}
+                <div class="empty-box">
+                    <p>No se ha definido una ubicación para este evento.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

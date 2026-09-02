@@ -1,0 +1,142 @@
+{% extends "agenda/base.html" %}
+
+{% block title %}
+Inicio | Felix Agenda
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <span class="eyebrow">Agenda inteligente</span>
+        <h1>Controla tu tiempo con precisión y estilo premium.</h1>
+        <p>
+            Organiza reuniones, citas y prioridades en un espacio pensado para alta performance,
+            claridad visual y decisiones más rápidas.
+        </p>
+        <div class="hero-actions">
+            <a href="{% url 'evento_crear' %}" class="boton primary">Crear evento</a>
+            <a href="{% url 'eventos' %}" class="boton secondary">Ver agenda</a>
+        </div>
+
+        <div class="hero-pills">
+            <span>Sin fricción</span>
+            <span>Visual moderna</span>
+            <span>Gestión ágil</span>
+        </div>
+    </div>
+
+    <div class="hero-panel">
+        <div class="panel-header">
+            <h3>Próximos eventos</h3>
+            <span>{{ total_eventos }} en total</span>
+        </div>
+
+        {% for evento in proximos %}
+        <a href="{% url 'evento_detalle' evento.pk %}" class="mini-evento">
+            <div class="mini-fecha">
+                <strong>{{ evento.fecha_inicio|date:"d" }}</strong>
+                <span>{{ evento.fecha_inicio|date:"M" }}</span>
+            </div>
+            <div class="mini-info">
+                <h4>{{ evento.titulo }}</h4>
+                <p>{{ evento.fecha_inicio|date:"D, H:i" }}</p>
+            </div>
+        </a>
+        {% empty %}
+        <div class="empty-box">
+            <p>Aún no tienes eventos programados.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="overview-panel">
+    <div class="overview-content">
+        <div class="overview-head">
+            <div>
+                <span class="eyebrow tiny">Panorama del día</span>
+                <h3>Tu enfoque del día</h3>
+            </div>
+            <span class="status-pill">En vivo</span>
+        </div>
+
+        <div class="overview-grid">
+            <div class="insight-card accent">
+                <span>Concentración</span>
+                <strong>84%</strong>
+                <small>+12% vs. semana pasada</small>
+            </div>
+            <div class="insight-card">
+                <span>Eventos</span>
+                <strong>{{ total_eventos }}</strong>
+                <small>Total registrados</small>
+            </div>
+            <div class="insight-card">
+                <span>Próximos</span>
+                <strong>{{ proximos|length }}</strong>
+                <small>Por revisar</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="timeline-card">
+        <div class="timeline-head">
+            <h4>Agenda de hoy</h4>
+            <span>{{ hoy|date:"d M" }}</span>
+        </div>
+
+        {% for evento in proximos|slice:":3" %}
+        <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-copy">
+                <strong>{{ evento.titulo }}</strong>
+                <span>{{ evento.fecha_inicio|date:"H:i" }} · {{ evento.ubicacion|default:"Sin ubicación" }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-timeline">
+            <p>No hay eventos próximos para este día.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="stats">
+    <div class="stat-card">
+        <strong>{{ total_eventos }}</strong>
+        <span>Eventos</span>
+    </div>
+    <div class="stat-card">
+        <strong>{{ proximos|length }}</strong>
+        <span>Próximos</span>
+    </div>
+    <div class="stat-card">
+        <strong>{{ hoy|date:"d" }}</strong>
+        <span>Hoy</span>
+    </div>
+</section>
+
+<section class="caracteristicas">
+    <div class="section-heading">
+        <span class="eyebrow">Potencia tu productividad</span>
+        <h2>Una experiencia pensada para líderes, equipos y personas exigentes.</h2>
+    </div>
+    <div class="tarjetas">
+        <div class="tarjeta">
+            <div class="icon-badge">01</div>
+            <h3>Crear eventos</h3>
+            <p>Registra reuniones, tareas o citas con fecha, hora, ubicación y contexto visual.</p>
+        </div>
+        <div class="tarjeta">
+            <div class="icon-badge">02</div>
+            <h3>Ver tu agenda</h3>
+            <p>Consulta tu calendario en una interfaz elegante, clara y preparada para tomar decisiones.</p>
+        </div>
+        <div class="tarjeta">
+            <div class="icon-badge">03</div>
+            <h3>Organizarte mejor</h3>
+            <p>Usa filtros, categorías y ubicaciones para mantener el control del día en cada detalle.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

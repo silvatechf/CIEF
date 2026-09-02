@@ -1,0 +1,92 @@
+{% extends "agenda/base.html" %}
+
+{% block title %}
+Mis eventos | Mi Agenda
+{% endblock %}
+
+{% block content %}
+<section class="eventos-container">
+    <div class="eventos-header">
+        <div>
+            <h1>Mis eventos</h1>
+            <p>Consulta todo tu calendario y mantén tus actividades organizadas.</p>
+        </div>
+        <a href="{% url 'evento_crear' %}" class="boton primary">+ Crear evento</a>
+    </div>
+
+    <form method="get" class="filtro-form">
+        <div class="campo-busqueda">
+            <input type="text" name="q" value="{{ query }}" placeholder="Buscar por nombre, ubicación o descripción">
+        </div>
+
+        <div class="campo-select">
+            <select name="categoria">
+                <option value="">Todas las categorías</option>
+                {% for categoria in categorias %}
+                {% if categoria_actual and categoria_actual.id == categoria.id %}
+                <option value="{{ categoria.id }}" selected>{{ categoria.nombre }}</option>
+                {% else %}
+                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="boton secondary">Filtrar</button>
+
+        {% if query or categoria_actual %}
+        <a href="{% url 'eventos' %}" class="boton ghost">Limpiar</a>
+        {% endif %}
+    </form>
+
+    <div class="lista-eventos">
+        {% for evento in data %}
+        <div class="evento-card">
+            <div class="evento-fecha">
+                <span class="evento-dia">{{ evento.fecha_inicio|date:"d" }}</span>
+                <span class="evento-mes">{{ evento.fecha_inicio|date:"M" }}</span>
+            </div>
+
+            <div class="evento-info">
+                <div class="evento-topline">
+                    {% if evento.categoria.first %}
+                    <span class="badge">{{ evento.categoria.first.nombre }}</span>
+                    {% else %}
+                    <span class="badge">General</span>
+                    {% endif %}
+
+                    {% if evento.ubicacion %}
+                    <span class="ubicacion">{{ evento.ubicacion }}</span>
+                    {% endif %}
+                </div>
+
+                <h2><a href="{% url 'evento_detalle' evento.pk %}">{{ evento.titulo }}</a></h2>
+
+                <p class="evento-hora">
+                    {{ evento.fecha_inicio|date:"d M Y, H:i" }} - {{ evento.fecha_fin|date:"d M Y, H:i" }}
+                </p>
+
+                {% if evento.descripcion %}
+                <p class="evento-descripcion">{{ evento.descripcion|truncatewords:20 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="evento-acciones">
+                <a href="{% url 'evento_editar' evento.pk %}" class="btn-editar">Editar</a>
+                <form action="{% url 'evento_eliminar' evento.pk %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-eliminar"
+                        onclick="return confirm('¿Deseas eliminar este evento?')">Eliminar</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <div class="sin-eventos">
+            <h2>No tienes eventos</h2>
+            <p>Todavía no has creado ningún evento para esta búsqueda.</p>
+            <a href="{% url 'evento_crear' %}" class="boton primary">Crear mi primer evento</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

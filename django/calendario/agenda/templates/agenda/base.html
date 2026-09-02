@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Agenda premium para planejar eventos, compromissos e organização pessoal com alto nível visual.">
+    <title>
+        {% block title %}
+        Felix Agenda
+        {% endblock %}
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block css %}{% endblock %}
+</head>
+
+<body>
+    <div class="page-shell">
+        <nav class="topbar">
+            <div class="logo-wrap">
+                <div class="logo-mark">F</div>
+                <div class="logo-text">
+                    <a href="{% url 'home' %}">Felix</a>
+                    <span>Agenda</span>
+                </div>
+            </div>
+
+            <div class="menu">
+                <a href="{% url 'home' %}">Inicio</a>
+                <a href="{% url 'eventos' %}">Eventos</a>
+                <a href="{% url 'evento_crear' %}" class="menu-cta">Nuevo evento</a>
+            </div>
+        </nav>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+        <a href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20quero%20conversar%20sobre%20minha%20agenda%20e%20eventos."
+            class="whatsapp-float" target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp">
+            <span>WhatsApp</span>
+        </a>
+
+        <footer class="site-footer">
+            <p>Felix Agenda — organización inteligente para tus días más importantes.</p>
+        </footer>
+    </div>
+
+    <script>
+        (() => {
+            const REMINDER_MS = 5 * 60 * 1000;
+            const WHATSAPP_URL = "https://wa.me/5511999999999?text=Ol%C3%A1%2C%20voc%C3%AA%20n%C3%A3o%20respondeu%20aos%20lembretes%20da%20agenda.%20Precisa%20de%20ajuda%3F";
+            const toastStack = document.getElementById('toastStack');
+            let reminderCount = 0;
+            let lastInteraction = Date.now();
+            let reminderLoop = null;
+
+            function showToast() {
+                if (!toastStack) return;
+
+                reminderCount += 1;
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.innerHTML = `
+                    <div class="toast-header">
+                        <span>Lembrete</span>
+                        <button type="button" aria-label="Fechar lembrete">×</button>
+                    </div>
+                    <p>Você tem um lembrete importante da sua agenda. Revise os próximos eventos.</p>
+                    <div class="toast-actions">
+                        <a href="${WHATSAPP_URL}" target="_blank" rel="noreferrer">Abrir WhatsApp</a>
+                    </div>
+                `;
+
+                const closeButton = toast.querySelector('button');
+                closeButton.addEventListener('click', () => {
+                    toast.classList.add('closing');
+                    setTimeout(() => toast.remove(), 220);
+                    lastInteraction = Date.now();
+                    reminderCount = 0;
+                });
+
+                toastStack.appendChild(toast);
+                requestAnimationFrame(() => toast.classList.add('visible'));
+
+                setTimeout(() => {
+                    if (toast.isConnected) {
+                        toast.classList.add('closing');
+                        setTimeout(() => toast.remove(), 220);
+                    }
+                }, 7000);
+            }
+
+            function triggerWhatsAppFollowUp() {
+                if (window.open) {
+                    window.open(WHATSAPP_URL, '_blank', 'noopener');
+                }
+                reminderCount = 0;
+                lastInteraction = Date.now();
+            }
+
+            function scheduleReminderLoop() {
+                clearTimeout(reminderLoop);
+                reminderLoop = setTimeout(() => {
+                    const idleMs = Date.now() - lastInteraction;
+
+                    if (idleMs >= REMINDER_MS) {
+                        showToast();
+
+                        if (reminderCount >= 2) {
+                            triggerWhatsAppFollowUp();
+                            return;
+                        }
+                    }
+
+                    scheduleReminderLoop();
+                }, REMINDER_MS);
+            }
+
+            const handleUserActivity = () => {
+                lastInteraction = Date.now();
+                if (reminderCount >= 2) {
+                    reminderCount = 0;
+                }
+            };
+
+            ['click', 'mousemove', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+                document.addEventListener(eventName, handleUserActivity, { passive: true });
+            });
+
+            scheduleReminderLoop();
+        })();
+    </script>
+    <script src="{% static 'js/script.js' %}"></script>
+    {% block js %}{% endblock %}
+</body>
+
+</html>
