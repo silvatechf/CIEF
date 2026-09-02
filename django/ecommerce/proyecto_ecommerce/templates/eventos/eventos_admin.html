@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Eventos{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-5">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>Eventos del Sistema</h1>
+
+            {% if user.is_superuser %}
+            <p class="text-muted">Visualización completa de todos los eventos de la plataforma</p>
+            {% else %}
+            <p class="text-muted">Mis eventos registrados</p>
+            {% endif %}
+
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="tipo" class="form-label">Tipo de Evento</label>
+                            <select name="tipo" id="tipo" class="form-select">
+                                <option value="">Todos</option>
+                                {% for tipo in tipos_disponibles %}
+                                <option value="{{ tipo }}" {% if request.GET.tipo==tipo %}selected{% endif %}>
+                                    {{ tipo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        {% if user.is_superuser %}
+                        <div class="col-md-3">
+                            <label for="usuario" class="form-label">Usuario</label>
+                            <input type="text" name="usuario" id="usuario" class="form-control"
+                                placeholder="Buscar usuario" value="{{ request.GET.usuario|default:'' }}">
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-3">
+                            <label for="fecha_desde" class="form-label">Desde</label>
+                            <input type="datetime-local" name="fecha_desde" id="fecha_desde" class="form-control"
+                                value="{{ request.GET.fecha_desde|default:'' }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="fecha_hasta" class="form-label">Hasta</label>
+                            <input type="datetime-local" name="fecha_hasta" id="fecha_hasta" class="form-control"
+                                value="{{ request.GET.fecha_hasta|default:'' }}">
+                        </div>
+
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <a href="{% url 'eventos:lista' %}" class="btn btn-secondary">Limpiar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Eventos</h5>
+                            <p class="card-text display-5">{{ total_eventos }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de eventos -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Listado de Eventos</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                {% if user.is_superuser %}
+                                <th>Usuario</th>
+                                {% endif %}
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>URL</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for evento in object_list %}
+                            <tr>
+                                <td>
+                                    <small>{{ evento.fecha_creacion|date:"d/m/Y H:i:s" }}</small>
+                                </td>
+                                {% if user.is_superuser %}
+                                <td>
+                                    {% if evento.usuario %}
+                                    <strong>{{ evento.usuario.username }}</strong>
+                                    {% else %}
+                                    <em class="text-muted">Anónimo</em>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <span class="badge bg-info">{{ evento.get_tipo_display }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ evento.descripcion|truncatewords:10 }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ evento.url|truncatewords:3|default:"N/A" }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ evento.ip_address|default:"N/A" }}</small>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if user.is_superuser %}6{% else %}5{% endif %}"
+                                    class="text-center text-muted py-4">
+                                    No hay eventos para mostrar
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <nav aria-label="Paginación" class="mt-4">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">Primera</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge {
+        padding: 6px 12px;
+        font-weight: 500;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Productos | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Catálogo de Productos</h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for producto in productos %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <!-- A imagem exigiria configuração de MEDIA_URL, usando placeholder se vazio -->
+            <img src="{% if producto.imagen %}{{ producto.imagen.url }}{% else %}https://via.placeholder.com/300x200{% endif %}" class="card-img-top" alt="{{ producto.nombre }}">
+            <div class="card-body">
+                <h5 class="card-title"><a href="{% url 'productos:detalle' producto.slug %}">{{ producto.nombre }}</a></h5>
+                
+                {% if producto.tiene_descuento %}
+                    <p class="card-text text-danger">
+                        <s>${{ producto.precio }}</s> <strong>${{ producto.precio_final }}</strong>
+                    </p>
+                {% else %}
+                    <p class="card-text"><strong>${{ producto.precio }}</strong></p>
+                {% endif %}
+                
+                <p class="text-muted small">Stock: {{ producto.stock }}</p>
+            </div>
+            <div class="card-footer bg-white border-top-0">
+                {% if producto.en_stock %}
+                    <form method="POST" action="{% url 'carrito:agregar' producto.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="cantidad" value="1">
+                        <button type="submit" class="btn btn-primary w-100">Agregar al Carrito</button>
+                    </form>
+                {% else %}
+                    <button class="btn btn-secondary w-100" disabled>Agotado</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 alert alert-warning">No se encontraron productos.</div>
+    {% endfor %}
+</div>
+{% endblock %}
