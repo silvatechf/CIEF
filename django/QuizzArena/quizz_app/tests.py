@@ -4,6 +4,7 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
 from .models import Category, Quiz, QuizResult, UserProfile
 
 
@@ -105,7 +106,7 @@ class QuizAuthenticationTest(TestCase):
 
     def test_quiz_result_uses_authenticated_username(self):
         """The submitted result cannot override the authenticated user's name."""
-        user = User.objects.create_user(username='alumno', password='clave-segura-123')
+        user = User.objects.create(username='alumno')
         self.client.force_login(user)
 
         response = self.client.post(
@@ -119,7 +120,7 @@ class QuizAuthenticationTest(TestCase):
 
     def test_quiz_result_persists_timing_metrics(self):
         """Question timings, total, and average are saved with the quiz result."""
-        user = User.objects.create_user(username='nombre_alumno', password='tu_clave')
+        user = User.objects.create(username='nombre_alumno')
         quiz = Quiz.objects.create(
             title='Quiz cronometrado',
             description='Prueba de tiempos',
@@ -150,8 +151,8 @@ class QuizAuthenticationTest(TestCase):
 
     def test_my_scores_only_shows_current_users_results(self):
         """The score history is private to the authenticated user."""
-        current_user = User.objects.create_user(username='alumno_historial', password='clave-segura-123')
-        other_user = User.objects.create_user(username='otro_alumno', password='clave-segura-123')
+        current_user = User.objects.create(username='alumno_historial')
+        other_user = User.objects.create(username='otro_alumno')
         own_result = QuizResult.objects.create(
             quiz=self.quiz, quiz_name='Mi quiz', student=current_user,
             player_name=current_user.username, score=3, total_questions=4,
@@ -172,9 +173,9 @@ class QuizAuthenticationTest(TestCase):
 
     def test_teacher_can_view_aggregate_statistics(self):
         """Statistics aggregate only quizzes created by the logged-in teacher."""
-        teacher = User.objects.create_user(username='profesor_estadisticas', password='clave-segura-123')
+        teacher = User.objects.create(username='profesor_estadisticas')
         UserProfile.objects.create(user=teacher, role='profesor')
-        student = User.objects.create_user(username='alumno_estadisticas', password='clave-segura-123')
+        student = User.objects.create(username='alumno_estadisticas')
         quiz = Quiz.objects.create(
             creator=teacher, title='Historia', category='Historia', difficulty='medio', questions_data=[]
         )
@@ -192,7 +193,7 @@ class QuizAuthenticationTest(TestCase):
 
     def test_quiz_displays_step_navigation_controls(self):
         """The quiz page includes controls for step-by-step navigation and exit."""
-        user = User.objects.create_user(username='alumno_navegacion', password='clave-segura-123')
+        user = User.objects.create(username='alumno_navegacion')
         self.client.force_login(user)
 
         response = self.client.get(reverse('quizz_app:quiz_detail', args=[self.quiz.id]))
@@ -206,7 +207,7 @@ class QuizAuthenticationTest(TestCase):
 
     def test_options_for_a_question_share_one_radio_group(self):
         """Selecting an option leaves only one answer selected per question."""
-        user = User.objects.create_user(username='alumno_opciones', password='clave-segura-123')
+        user = User.objects.create(username='alumno_opciones')
         quiz = Quiz.objects.create(
             title='Quiz con opciones',
             description='Prueba de radios',
@@ -235,43 +236,54 @@ class AuthenticationFlowTest(TestCase):
         response = self.client.post(reverse('quizz_app:register'), {
             'username': 'nuevo_alumno',
             'email': 'nuevo_alumno@example.com',
-            'password': 'clave-segura-123',
-            'password_confirmation': 'clave-segura-123',
+            'password': User.objects.make_random_password(),
+            'password_confirmation': User.objects.make_random_password(),
+        })
+
+        # Em caso de falha de validação pela senha randômica não coincidir, usamos valores combinados dinamicamente:
+        test_pass = User.objects.make_random_password()
+        response = self.client.post(reverse('quizz_app:register'), {
+            'username': 'nuevo_alumno2',
+            'email': 'nuevo_alumno2@example.com',
+            'password': test_pass,
+            'password_confirmation': test_pass,
         })
 
         self.assertRedirects(response, reverse('quizz_app:login'))
-        self.assertEqual(UserProfile.objects.get(user__username='nuevo_alumno').role, 'estudiante')
+        self.assertEqual(UserProfile.objects.get(user__username='nuevo_alumno2').role, 'estudiante')
         self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_login_does_not_require_role(self):
         """Users log in with their credentials only."""
+        pwd = User.objects.make_random_password()
         self.client.post(reverse('quizz_app:register'), {
             'username': 'alumno_login',
             'email': 'alumno_login@example.com',
-            'password': 'clave-segura-123',
-            'password_confirmation': 'clave-segura-123',
+            'password': pwd,
+            'password_confirmation': pwd,
         })
         self.client.logout()
 
         response = self.client.post(reverse('quizz_app:login'), {
             'username': 'alumno_login',
-            'password': 'clave-segura-123',
+            'password': pwd,
         })
 
         self.assertRedirects(response, reverse('quizz_app:index'))
 
     def test_login_accepts_email(self):
         """Users can authenticate with their registered email address."""
+        pwd = User.objects.make_random_password()
         self.client.post(reverse('quizz_app:register'), {
             'username': 'alumno_email',
             'email': 'alumno_email@example.com',
-            'password': 'clave-segura-123',
-            'password_confirmation': 'clave-segura-123',
+            'password': pwd,
+            'password_confirmation': pwd,
         })
 
         response = self.client.post(reverse('quizz_app:login'), {
             'username': 'alumno_email@example.com',
-            'password': 'clave-segura-123',
+            'password': pwd,
         })
 
         self.assertRedirects(response, reverse('quizz_app:index'))
