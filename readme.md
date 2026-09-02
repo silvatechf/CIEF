@@ -1,4 +1,3 @@
-
 # Proyectos Académicos - Programación Orientada a Objetos (POO)
 
 Este repositorio reúne los proyectos, ejercicios y prácticas desarrollados durante el curso **IFCD0112 (Desarrollo de Aplicaciones con Tecnologías Web)** impartido en **CIEF** y financiado por el **SEPE**.
@@ -10,51 +9,32 @@ Documentar el avance práctico y la consolidación de conceptos clave de la **Pr
 
 ---
 
-## 📚 Contenido del Repositorio
+## 📚 Estructura del Repositorio
 
-* **`django/`**: Aplicaciones web y proyectos prácticos desarrollados con el framework Django.
-  * `QuizzArena`: Plataforma interactiva de cuestionarios y trivias.
-  * `proyecto_ecommerce`: Estructura base para comercio electrónico.
-* **Ejercicios POO**: Algoritmos, clases, objetos, herencia, polimorfismo y encapsulamiento.
+* **`django/`**: Aplicaciones web y proyectos backend.
+  * `QuizzArena`: Plataforma interactiva de cuestionarios y evaluaciones.
+  * `calendario`: Módulo para la gestión y visualización de eventos.
+  * `ecommerce/proyecto_ecommerce`: Estructura base para tiendas virtuales.
+* **Prácticas POO**: Algoritmos, clases, herencia, polimorfismo y encapsulamiento.
 
 ---
 
 ## 🛠️ Tecnologías Utilizadas
 
-* **Lenguaje:** Python
-* **Framework Backend:** Django
+* **Lenguaje:** Python 3.x
+* **Framework Backend:** Django 4.x
 * **Control de Versiones:** Git & GitHub
-* **Entorno:** Windows PowerShell / VS Code
+* **Entorno de Desarrollo:** Windows PowerShell / VS Code
 
 ---
 
-## 🚀 Cómo Ejecutar un Proyecto Localmente
+## 🚀 Instalación y Configuración Local
 
 1. **Clonar el repositorio:**
    ```bash
    git clone [https://github.com/silvatechf/CIEF.git](https://github.com/silvatechf/CIEF.git)
    cd CIEF
-
-```
-
-2. **Crear y activar un entorno virtual (opcional pero recomendado):**
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-```
-
-
-3. **Ejecutar el servidor de desarrollo en Django:**
-```powershell
-cd django/tu_proyecto
-python manage.py runserver
-
-```
-
-
-
----
+   
 
 📌 *Desarrollado por **Fernando Silva** como parte de la formación profesional IFCD0112.*
 
