@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="quiz-container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h2>🔐 Cybersecurity Challenge Quiz</h2>
+    
+    {% if error_message %}
+        <div class="alert alert-warning">{{ error_message }}</div>
+    {% else %}
+        <form method="post" action="">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                <div class="card my-4 p-3 style-card" style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="color: #333;">Questão {{ forloop.counter }}</h5>
+                    <p><strong>{{ field.label }}</strong></p>
+                    
+                    <div class="options-group">
+                        {{ field }}
+                    </div>
+                    
+                    {% if field.errors %}
+                        <div style="color: red; font-size: 0.9em;">
+                            {{ field.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-primary" style="padding: 12px 24px; background: #667eea; color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+                Submeter Respostas
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

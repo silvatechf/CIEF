@@ -1,22 +1,47 @@
 """Views for the quizz application."""
+import json
+import base64
+from io import BytesIO
+from urllib.parse import urlencode
+from functools import wraps
+
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q
 from django.views.decorators.csrf import csrf_exempt
-from .models import Category, Quiz, QuizResult, QuizEnrollment, UserProfile, LiveSession, LiveParticipant
-import json
-import qrcode
-from io import BytesIO
-import base64
-from urllib.parse import urlencode
+from django.urls import reverse
 from django.utils import timezone
+import qrcode
 
+from .models import Category, Quiz, QuizResult, QuizEnrollment, UserProfile, LiveSession, LiveParticipant
+
+
+# ==========================================
+# Decorators Customizados
+# ==========================================
+
+def teacher_required(view_func):
+    """Decorator que garante que o usuário autenticado é um professor."""
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('quizz_app:login')
+        profile = getattr(request.user, 'profile', None)
+        if not profile or profile.role != 'profesor':
+            return redirect('quizz_app:index')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+# ==========================================
+# Autenticação e Conta
+# ==========================================
 
 def login_view(request):
     """Display login page."""
@@ -70,7 +95,7 @@ def register_view(request):
             error = 'Este correo electrónico ya está registrado'
         elif error is None:
             user = User.objects.create_user(username=username, email=email, password=password)
-            UserProfile.objects.create(user=user, role='estudiante')
+            UserProfile.objects.get_or_create(user=user, defaults={'role': 'estudiante'})
             return redirect('quizz_app:login')
 
     return render(request, 'register.html', {'error': error})
@@ -82,13 +107,14 @@ def logout_view(request):
     return redirect('quizz_app:login')
 
 
+# ==========================================
+# Quizzes - Alunos
+# ==========================================
+
 def index(request):
     """Display list of available quizzes."""
     quizzes = Quiz.objects.all().order_by('-created_at')
-    context = {
-        'quizzes': quizzes,
-    }
-    return render(request, 'index.html', context)
+    return render(request, 'index.html', {'quizzes': quizzes})
 
 
 @login_required
@@ -126,24 +152,20 @@ def submit_quiz(request, quiz_id):
         score = 0
         total = len(questions)
         
-        # Calculate score
         for idx, question in enumerate(questions):
             question_idx = str(idx)
-            if question_idx in answers:
-                if answers[question_idx] == question.get('correct_answer'):
-                    score += 1
+            user_ans = answers.get(question_idx)
+            correct_ans = question.get('correct_answer')
+            
+            if user_ans is not None and str(user_ans).strip() == str(correct_ans).strip():
+                score += 1
         
-        # Calculate percentage
         percentage = (score / total * 100) if total > 0 else 0
         
-        # Get the current user if authenticated
-        student = request.user if request.user.is_authenticated else None
-        
-        # Save result
         result = QuizResult.objects.create(
             quiz=quiz,
             quiz_name=quiz.title,
-            student=student,
+            student=request.user,
             player_name=request.user.username,
             score=score,
             total_questions=total,
@@ -164,10 +186,7 @@ def submit_quiz(request, quiz_id):
             'result_id': result.id
         })
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=400)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 def results(request, result_id):
@@ -175,17 +194,21 @@ def results(request, result_id):
     result = get_object_or_404(QuizResult, id=result_id)
     questions = result.quiz.get_questions()
     
-    # Prepare detailed results
     detailed_results = []
     for idx, question in enumerate(questions):
         question_idx = str(idx)
         user_answer = result.answers.get(question_idx)
-        is_correct = user_answer == question.get('correct_answer')
+        correct_answer = question.get('correct_answer')
+        
+        is_correct = (
+            user_answer is not None and 
+            str(user_answer).strip() == str(correct_answer).strip()
+        )
         
         detailed_results.append({
             'question': question.get('question'),
             'options': question.get('options', []),
-            'correct_answer': question.get('correct_answer'),
+            'correct_answer': correct_answer,
             'user_answer': user_answer,
             'is_correct': is_correct,
         })
@@ -208,32 +231,22 @@ def leaderboard(request, quiz_id):
     """Display leaderboard for a specific quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
     results = QuizResult.objects.filter(quiz=quiz).order_by('-score', '-percentage')[:10]
-    
-    context = {
-        'quiz': quiz,
-        'results': results,
-    }
-    return render(request, 'leaderboard.html', context)
+    return render(request, 'leaderboard.html', {'quiz': quiz, 'results': results})
 
 
 def generate_qr_code(request, quiz_id):
     """Generate QR code for quiz enrollment."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
+    enrollment_path = reverse('quizz_app:enroll_quiz', kwargs={'access_code': quiz.access_code})
+    enrollment_url = request.build_absolute_uri(enrollment_path)
     
-    # Create enrollment URL
-    enrollment_url = request.build_absolute_uri(f'/quiz/enroll/{quiz.access_code}/')
-    
-    # Generate QR code
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(enrollment_url)
     qr.make(fit=True)
     
     img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Return as image
     buffer = BytesIO()
     img.save(buffer, format='PNG')
-    buffer.seek(0)
     
     return HttpResponse(buffer.getvalue(), content_type='image/png')
 
@@ -242,71 +255,56 @@ def enroll_quiz(request, access_code):
     """Enroll student in quiz via access code."""
     quiz = get_object_or_404(Quiz, access_code=access_code, is_active=True)
     
-    # If user is authenticated, create enrollment
     if request.user.is_authenticated:
-        enrollment, created = QuizEnrollment.objects.get_or_create(
-            student=request.user,
-            quiz=quiz
-        )
-        return redirect('quiz_detail', quiz_id=quiz.id)
+        QuizEnrollment.objects.get_or_create(student=request.user, quiz=quiz)
+        return redirect('quizz_app:quiz_detail', quiz_id=quiz.id)
     else:
-        # Redirect to login, then to quiz
-        return redirect(f'/login/?next=/quiz/detail/{quiz.id}/')
+        next_url = reverse('quizz_app:quiz_detail', kwargs={'quiz_id': quiz.id})
+        login_url = reverse('quizz_app:login')
+        return redirect(f'{login_url}?{urlencode({"next": next_url})}')
 
+
+# ==========================================
+# Área do Professor
+# ==========================================
 
 @login_required
+@teacher_required
 def teacher_dashboard(request):
-    """Teacher dashboard to manage quizzes."""
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
+    """Teacher dashboard to manage quizzes (Otimizado via ORM)."""
+    quizzes = Quiz.objects.filter(creator=request.user).annotate(
+        enrollments_count=Count('quizenrollment', distinct=True),
+        attempts_count=Count('results', distinct=True),
+        avg_score=Avg('results__percentage')
+    ).order_by('-created_at')
     
-    # Get quizzes created by this teacher
-    quizzes = Quiz.objects.filter(creator=request.user).order_by('-created_at')
-    
-    quiz_stats = []
-    for quiz in quizzes:
-        enrollments = QuizEnrollment.objects.filter(quiz=quiz).count()
-        results = QuizResult.objects.filter(quiz=quiz).count()
-        avg_score = 0
-        if results > 0:
-            avg_scores = QuizResult.objects.filter(quiz=quiz).values_list('percentage', flat=True)
-            avg_score = sum(avg_scores) / len(avg_scores)
-        
-        quiz_stats.append({
+    quiz_stats = [
+        {
             'quiz': quiz,
-            'enrollments': enrollments,
-            'attempts': results,
-            'avg_score': round(avg_score, 2),
-        })
+            'enrollments': quiz.enrollments_count,
+            'attempts': quiz.attempts_count,
+            'avg_score': round(quiz.avg_score or 0, 2),
+        }
+        for quiz in quizzes
+    ]
     
-    context = {
-        'quiz_stats': quiz_stats,
-    }
-    return render(request, 'teacher_dashboard.html', context)
+    return render(request, 'teacher_dashboard.html', {'quiz_stats': quiz_stats})
 
 
 @login_required
+@teacher_required
 def teacher_statistics(request):
     """Display aggregate performance statistics for the teacher's quizzes."""
-    try:
-        if request.user.profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-
     quizzes = Quiz.objects.filter(creator=request.user)
     results = QuizResult.objects.filter(quiz__creator=request.user)
+    
     aggregate = results.aggregate(
         total_attempts=Count('id'),
         total_students=Count('student', distinct=True),
         average_score=Avg('percentage'),
         average_time=Avg('time_taken'),
     )
+    
     category_stats = quizzes.values('category').annotate(
         quizzes=Count('id'),
         attempts=Count('results'),
@@ -318,22 +316,17 @@ def teacher_statistics(request):
         'active_quizzes': quizzes.filter(is_active=True).count(),
         'total_attempts': aggregate['total_attempts'],
         'total_students': aggregate['total_students'],
-        'average_score': aggregate['average_score'] or 0,
-        'average_time': aggregate['average_time'] or 0,
+        'average_score': round(aggregate['average_score'] or 0, 2),
+        'average_time': round(aggregate['average_time'] or 0, 2),
         'category_stats': category_stats,
     }
     return render(request, 'teacher_statistics.html', context)
 
 
 @login_required
+@teacher_required
 def manage_categories(request):
     """Create, rename, and delete quiz categories owned by the teacher."""
-    try:
-        if request.user.profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-
     if request.method == 'POST':
         action = request.POST.get('action')
         name = request.POST.get('name', '').strip()
@@ -355,16 +348,9 @@ def manage_categories(request):
 
 
 @login_required
+@teacher_required
 def create_quiz(request):
     """Create a new quiz."""
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-    
     if request.method == 'POST':
         try:
             title = request.POST.get('title', '').strip()
@@ -374,13 +360,11 @@ def create_quiz(request):
             time_limit = int(request.POST.get('time_limit', 0))
             questions_json = request.POST.get('questions', '[]')
             
-            # Validate required fields
             if not title:
                 raise ValueError('El título es requerido')
             if not difficulty:
                 raise ValueError('La dificultad es requerida')
             
-            # Parse and validate JSON
             try:
                 questions = json.loads(questions_json)
             except json.JSONDecodeError as e:
@@ -389,7 +373,6 @@ def create_quiz(request):
             if not questions or not isinstance(questions, list):
                 raise ValueError('Las preguntas deben ser una lista JSON válida')
             
-            # Validate each question
             for idx, q in enumerate(questions):
                 if not isinstance(q, dict):
                     raise ValueError(f'Pregunta {idx + 1}: debe ser un objeto')
@@ -397,11 +380,14 @@ def create_quiz(request):
                     raise ValueError(f'Pregunta {idx + 1}: debe tener "question", "options" y "correct_answer"')
                 if not isinstance(q['options'], list) or len(q['options']) < 2:
                     raise ValueError(f'Pregunta {idx + 1}: debe tener al menos 2 opciones')
-                if not isinstance(q['correct_answer'], int) or q['correct_answer'] >= len(q['options']):
+                try:
+                    correct_idx = int(q['correct_answer'])
+                    if correct_idx < 0 or correct_idx >= len(q['options']):
+                        raise ValueError()
+                except (ValueError, TypeError):
                     raise ValueError(f'Pregunta {idx + 1}: "correct_answer" es inválido')
             
-            # Create the quiz
-            quiz = Quiz.objects.create(
+            Quiz.objects.create(
                 creator=request.user,
                 title=title,
                 description=description,
@@ -411,14 +397,10 @@ def create_quiz(request):
                 questions_data=questions,
                 is_active=True
             )
-            
             return redirect('quizz_app:teacher_dashboard')
             
         except (ValueError, KeyError) as e:
-            context = {
-                'error': str(e),
-                'form_data': request.POST
-            }
+            context = {'error': str(e), 'form_data': request.POST}
             return render(request, 'create_quiz.html', context, status=400)
     
     return render(request, 'create_quiz.html', {
@@ -427,17 +409,10 @@ def create_quiz(request):
 
 
 @login_required
+@teacher_required
 def edit_quiz(request, quiz_id):
     """Edit an existing quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
-    
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
     
     if request.method == 'POST':
         try:
@@ -448,33 +423,13 @@ def edit_quiz(request, quiz_id):
             time_limit = int(request.POST.get('time_limit', 0))
             questions_json = request.POST.get('questions', '[]')
             
-            # Validate required fields
-            if not title:
-                raise ValueError('El título es requerido')
-            if not difficulty:
-                raise ValueError('La dificultad es requerida')
+            if not title or not difficulty:
+                raise ValueError('Título e Dificuldade são obrigatórios')
             
-            # Parse and validate JSON
-            try:
-                questions = json.loads(questions_json)
-            except json.JSONDecodeError as e:
-                raise ValueError(f'Error en el JSON de las preguntas: {str(e)}')
-            
+            questions = json.loads(questions_json)
             if not questions or not isinstance(questions, list):
                 raise ValueError('Las preguntas deben ser una lista JSON válida')
             
-            # Validate each question
-            for idx, q in enumerate(questions):
-                if not isinstance(q, dict):
-                    raise ValueError(f'Pregunta {idx + 1}: debe ser un objeto')
-                if 'question' not in q or 'options' not in q or 'correct_answer' not in q:
-                    raise ValueError(f'Pregunta {idx + 1}: debe tener "question", "options" y "correct_answer"')
-                if not isinstance(q['options'], list) or len(q['options']) < 2:
-                    raise ValueError(f'Pregunta {idx + 1}: debe tener al menos 2 opciones')
-                if not isinstance(q['correct_answer'], int) or q['correct_answer'] >= len(q['options']):
-                    raise ValueError(f'Pregunta {idx + 1}: "correct_answer" es inválido')
-            
-            # Update the quiz
             quiz.title = title
             quiz.description = description
             quiz.category = category
@@ -485,12 +440,8 @@ def edit_quiz(request, quiz_id):
             
             return redirect('quizz_app:teacher_dashboard')
             
-        except (ValueError, KeyError) as e:
-            context = {
-                'error': str(e),
-                'quiz': quiz,
-                'form_data': request.POST
-            }
+        except (ValueError, json.JSONDecodeError) as e:
+            context = {'error': str(e), 'quiz': quiz, 'form_data': request.POST}
             return render(request, 'edit_quiz.html', context, status=400)
     
     context = {
@@ -509,124 +460,76 @@ def edit_quiz(request, quiz_id):
 
 
 @login_required
+@teacher_required
 def delete_quiz(request, quiz_id):
     """Delete a quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
-    
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-    
     if request.method == 'POST':
         quiz.delete()
         return redirect('quizz_app:teacher_dashboard')
     
-    context = {'quiz': quiz}
-    return render(request, 'delete_quiz.html', context)
+    return render(request, 'delete_quiz.html', {'quiz': quiz})
 
 
 @login_required
+@teacher_required
 def quiz_students(request, quiz_id):
-    """View all students who took a specific quiz."""
+    """View all students who took a specific quiz (Otimizado via ORM)."""
     quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
-    
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-    
-    # Get all results for this quiz
     results = QuizResult.objects.filter(quiz=quiz).order_by('-percentage', '-score')
     
-    # Calculate statistics
-    total_attempts = results.count()
-    avg_score = 0
-    if total_attempts > 0:
-        avg_scores = results.values_list('percentage', flat=True)
-        avg_score = sum(avg_scores) / len(avg_scores)
+    stats = results.aggregate(avg_score=Avg('percentage'), total_attempts=Count('id'))
     
     context = {
         'quiz': quiz,
         'results': results,
-        'total_attempts': total_attempts,
-        'avg_score': round(avg_score, 2),
+        'total_attempts': stats['total_attempts'],
+        'avg_score': round(stats['avg_score'] or 0, 2),
     }
     return render(request, 'quiz_students.html', context)
 
 
+# ==========================================
+# Sessões Ao Vivo
+# ==========================================
+
 @login_required
+@teacher_required
 def start_live_session(request, quiz_id):
     """Start a live session for a quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id, creator=request.user)
-    
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-    
-    # Create a new live session
-    session = LiveSession.objects.create(
-        quiz=quiz,
-        teacher=request.user,
-        status='waiting'
-    )
-    
+    session = LiveSession.objects.create(quiz=quiz, teacher=request.user, status='waiting')
     return redirect('quizz_app:manage_live_session', session_id=session.id)
 
 
 @login_required
+@teacher_required
 def manage_live_session(request, session_id):
     """Manage a live session (teacher view)."""
     session = get_object_or_404(LiveSession, id=session_id, teacher=request.user)
     
-    # Check if user is a teacher
-    try:
-        profile = request.user.profile
-        if profile.role != 'profesor':
-            return redirect('index')
-    except UserProfile.DoesNotExist:
-        return redirect('index')
-    
-    # Handle status changes
     if request.method == 'POST':
         action = request.POST.get('action')
-        
         if action == 'start':
             session.status = 'active'
             session.started_at = timezone.now()
-            session.save()
         elif action == 'pause':
             session.status = 'paused'
-            session.save()
         elif action == 'resume':
             session.status = 'active'
-            session.save()
         elif action == 'finish':
             session.status = 'finished'
             session.ended_at = timezone.now()
             session.allow_join = False
-            session.save()
         
+        session.save()
         return redirect('quizz_app:manage_live_session', session_id=session_id)
     
     participants = session.live_participants.all()
     total_questions = len(session.quiz.questions_data or [])
 
     for participant in participants:
-        if total_questions > 0:
-            participant.score_percentage = (participant.score / total_questions) * 100
-        else:
-            participant.score_percentage = 0
+        participant.score_percentage = (participant.score / total_questions * 100) if total_questions > 0 else 0
 
     context = {
         'session': session,
@@ -646,12 +549,14 @@ def join_live_session(request):
         student_name = request.POST.get('student_name', '').strip()
         
         try:
-            session = LiveSession.objects.get(session_code=session_code, allow_join=True, status__in=['waiting', 'active'])
+            session = LiveSession.objects.get(
+                session_code=session_code, 
+                allow_join=True, 
+                status__in=['waiting', 'active']
+            )
         except LiveSession.DoesNotExist:
-            error = 'Código de sesión no válido o sesión no disponible'
-            return render(request, 'join_live_session.html', {'error': error})
+            return render(request, 'join_live_session.html', {'error': 'Código de sesión no válido o sesión no disponible'})
         
-        # Create or get participant
         participant, created = LiveParticipant.objects.get_or_create(
             session=session,
             student_name=student_name,
@@ -659,8 +564,7 @@ def join_live_session(request):
         )
         
         if not created and participant.completed:
-            error = 'Ya has completado esta sesión'
-            return render(request, 'join_live_session.html', {'error': error})
+            return render(request, 'join_live_session.html', {'error': 'Ya has completado esta sesión'})
         
         return redirect('quizz_app:live_quiz', session_id=session.id, participant_id=participant.id)
     
@@ -684,15 +588,16 @@ def live_quiz(request, session_id, participant_id):
         for i in range(len(questions)):
             answer = request.POST.get(f'question_{i}')
             if answer is not None:
-                answers[str(i)] = int(answer)
+                try:
+                    answers[str(i)] = int(answer)
+                except ValueError:
+                    continue
         
-        # Calculate score
-        score = 0
-        for i, question in enumerate(questions):
-            if str(i) in answers and answers[str(i)] == question['correct_answer']:
-                score += 1
+        score = sum(
+            1 for i, q in enumerate(questions)
+            if str(i) in answers and str(answers[str(i)]).strip() == str(q.get('correct_answer')).strip()
+        )
         
-        # Update participant
         participant.answers = answers
         participant.score = score
         participant.completed = True
@@ -716,20 +621,23 @@ def live_results(request, session_id, participant_id):
     session = get_object_or_404(LiveSession, id=session_id)
     participant = get_object_or_404(LiveParticipant, id=participant_id, session=session)
     
-    quiz = session.quiz
-    questions = quiz.get_questions()
-    
-    # Prepare detailed results
+    questions = session.quiz.get_questions()
     detailed_results = []
+    
     for i, question in enumerate(questions):
         user_answer = participant.answers.get(str(i))
-        is_correct = user_answer == question['correct_answer']
+        correct_answer = question.get('correct_answer')
+        
+        is_correct = (
+            user_answer is not None and 
+            str(user_answer).strip() == str(correct_answer).strip()
+        )
         
         detailed_results.append({
-            'question': question['question'],
-            'options': question['options'],
+            'question': question.get('question'),
+            'options': question.get('options', []),
             'user_answer': user_answer,
-            'correct_answer': question['correct_answer'],
+            'correct_answer': correct_answer,
             'is_correct': is_correct,
         })
     
@@ -737,7 +645,7 @@ def live_results(request, session_id, participant_id):
     
     context = {
         'session': session,
-        'quiz': quiz,
+        'quiz': session.quiz,
         'participant': participant,
         'score': participant.score,
         'total': len(questions),
@@ -747,7 +655,6 @@ def live_results(request, session_id, participant_id):
     return render(request, 'live_results.html', context)
 
 
-@csrf_exempt
 def api_session_status(request, session_id):
     """API endpoint to get live session status."""
     session = get_object_or_404(LiveSession, id=session_id)
@@ -755,7 +662,7 @@ def api_session_status(request, session_id):
     
     return JsonResponse({
         'status': session.status,
-        'current_question': session.current_question,
+        'current_question': getattr(session, 'current_question', 0),
         'total_participants': participants.count(),
         'completed': participants.filter(completed=True).count(),
         'participants': [
@@ -767,3 +674,26 @@ def api_session_status(request, session_id):
             for p in participants
         ]
     })
+
+
+@login_required
+def cybersecurity_quiz_view(request):
+    """Exibe o quiz de Cibersegurança."""
+    quiz = Quiz.objects.filter(
+        Q(category__icontains='cybersecurity') | 
+        Q(category__icontains='ciberseguran') |
+        Q(title__icontains='cybersecurity') |
+        Q(title__icontains='ciberseguran')
+    ).first()
+
+    if not quiz:
+        quiz = Quiz.objects.first()
+
+    if not quiz:
+        raise Http404("Nenhum quiz foi encontrado no banco de dados.")
+    
+    context = {
+        'quiz': quiz,
+        'questions': quiz.get_questions(),
+    }
+    return render(request, 'quiz.html', context)

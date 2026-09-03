@@ -6,6 +6,9 @@ app_name = 'quizz_app'
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
+    
+    path('cybersecurity/', views.cybersecurity_quiz_view, name='cybersecurity_quiz'),
+
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('', views.index, name='index'),

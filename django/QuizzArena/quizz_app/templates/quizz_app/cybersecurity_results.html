@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="results-container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <h2>🎯 Resultado do Quiz</h2>
+    
+    <div class="summary-card" style="background: #f4f4f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Pontuação Total: <strong>{{ total_points }} pts</strong></h3>
+        <p>Acertos: <strong>{{ correct_count }} / {{ total_questions }}</strong> ({{ score_percentage }}%)</p>
+    </div>
+
+    <h4>Detalhamento das Respostas</h4>
+    {% for res in results %}
+        <div class="result-item my-3 p-3" style="border-left: 5px solid {% if res.is_correct %}#28a745{% else %}#dc3545{% endif %}; background: #fff; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; padding: 15px;">
+            <p><strong>Questão:</strong> {{ res.question }}</p>
+            <p>Status: 
+                {% if res.is_correct %}
+                    <span style="color: #28a745; font-weight: bold;">Correcto (+{{ res.points }} pts)</span>
+                {% else %}
+                    <span style="color: #dc3545; font-weight: bold;">Incorreto</span>
+                {% endif %}
+            </p>
+            {% if res.explanation %}
+                <p style="background: #eef2f5; padding: 10px; border-radius: 4px; font-size: 0.95em;">
+                    💡 <strong>Explicação:</strong> {{ res.explanation }}
+                </p>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <a href="{% url 'cybersecurity_quiz' %}" class="btn" style="display: inline-block; padding: 10px 20px; background: #764ba2; color: #fff; text-decoration: none; border-radius: 6px;">
+        Refazer Quiz
+    </a>
+</div>
+{% endblock %}
