@@ -108,8 +108,11 @@ class Quiz(models.Model):
     def get_questions(self):
         """Return the questions as a list of dictionaries."""
         if isinstance(self.questions_data, str):
-            return json.loads(self.questions_data)
-        return self.questions_data
+            try:
+                return json.loads(self.questions_data)
+            except json.JSONDecodeError:
+                return []
+        return self.questions_data or []
 
 
 class QuizEnrollment(models.Model):
@@ -134,7 +137,7 @@ class QuizResult(models.Model):
     """Model to store quiz results with persistence."""
 
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="results")
-    quiz_name = models.CharField(max_length=200, default="")
+    quiz_name = models.CharField(max_length=200, default="", blank=True)
     student = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -167,6 +170,30 @@ class QuizResult(models.Model):
     def __str__(self):
         return f"{self.player_name} - {self.quiz.title} ({self.percentage}%)"
 
+    def save(self, *args, **kwargs):
+        """Auto-populate quiz_name if empty."""
+        if not self.quiz_name and self.quiz:
+            self.quiz_name = self.quiz.title
+        super().save(*args, **kwargs)
+
+    @property
+    def user_answers(self):
+        """Alias property to ensure compatibility with templates expecting user_answers."""
+        return self.answers
+
+    @user_answers.setter
+    def user_answers(self, value):
+        self.answers = value
+
+    def get_answers(self):
+        """Return answers safely handling JSON formats."""
+        if isinstance(self.answers, str):
+            try:
+                return json.loads(self.answers)
+            except json.JSONDecodeError:
+                return {}
+        return self.answers or {}
+
     def get_time_display(self):
         """Return formatted time."""
         minutes = self.time_taken // 60
@@ -190,7 +217,7 @@ class LiveSession(models.Model):
     teacher = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="live_sessions_created"
     )
-    session_code = models.CharField(max_length=10, unique=True)
+    session_code = models.CharField(max_length=10, unique=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="waiting")
     current_question = models.IntegerField(default=0)
     allow_join = models.BooleanField(default=True)

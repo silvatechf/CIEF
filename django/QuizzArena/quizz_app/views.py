@@ -67,7 +67,7 @@ def login_view(request):
             error = 'Usuario o contraseña incorrectos'
 
     context = {'error': error, 'next': request.GET.get('next', '')}
-    return render(request, 'login.html', context)
+    return render(request, 'quizz_app/login.html', context)
 
 
 def register_view(request):
@@ -98,7 +98,7 @@ def register_view(request):
             UserProfile.objects.get_or_create(user=user, defaults={'role': 'estudiante'})
             return redirect('quizz_app:login')
 
-    return render(request, 'register.html', {'error': error})
+    return render(request, 'quizz_app/register.html', {'error': error})
 
 
 def logout_view(request):
@@ -114,7 +114,7 @@ def logout_view(request):
 def index(request):
     """Display list of available quizzes."""
     quizzes = Quiz.objects.all().order_by('-created_at')
-    return render(request, 'index.html', {'quizzes': quizzes})
+    return render(request, 'quizz_app/index.html', {'quizzes': quizzes})
 
 
 @login_required
@@ -125,7 +125,7 @@ def quiz_detail(request, quiz_id):
         'quiz': quiz,
         'questions': quiz.get_questions(),
     }
-    return render(request, 'quiz.html', context)
+    return render(request, 'quizz_app/quiz.html', context)
 
 
 @login_required
@@ -195,43 +195,46 @@ def results(request, result_id):
     questions = result.quiz.get_questions()
     
     detailed_results = []
+    answers_dict = result.get_answers()
+    
     for idx, question in enumerate(questions):
         question_idx = str(idx)
-        user_answer = result.answers.get(question_idx)
-        correct_answer = question.get('correct_answer')
+        user_answer = answers_dict.get(question_idx)
+        correct_answer = str(question.get('correct_answer'))
         
         is_correct = (
             user_answer is not None and 
-            str(user_answer).strip() == str(correct_answer).strip()
+            str(user_answer).strip() == correct_answer.strip()
         )
         
         detailed_results.append({
             'question': question.get('question'),
             'options': question.get('options', []),
             'correct_answer': correct_answer,
-            'user_answer': user_answer,
+            'user_answer': str(user_answer) if user_answer is not None else None,
             'is_correct': is_correct,
+            'explanation': question.get('explanation', '')
         })
     
     context = {
         'result': result,
         'detailed_results': detailed_results,
     }
-    return render(request, 'results.html', context)
+    return render(request, 'quizz_app/results.html', context)
 
 
 @login_required
 def my_scores(request):
     """Display the authenticated user's completed quiz results."""
     results = QuizResult.objects.filter(student=request.user).order_by('-created_at')
-    return render(request, 'my_scores.html', {'results': results})
+    return render(request, 'quizz_app/my_scores.html', {'results': results})
 
 
 def leaderboard(request, quiz_id):
     """Display leaderboard for a specific quiz."""
     quiz = get_object_or_404(Quiz, id=quiz_id)
     results = QuizResult.objects.filter(quiz=quiz).order_by('-score', '-percentage')[:10]
-    return render(request, 'leaderboard.html', {'quiz': quiz, 'results': results})
+    return render(request, 'quizz_app/leaderboard.html', {'quiz': quiz, 'results': results})
 
 
 def generate_qr_code(request, quiz_id):
@@ -273,7 +276,7 @@ def enroll_quiz(request, access_code):
 def teacher_dashboard(request):
     """Teacher dashboard to manage quizzes (Otimizado via ORM)."""
     quizzes = Quiz.objects.filter(creator=request.user).annotate(
-        enrollments_count=Count('quizenrollment', distinct=True),
+        enrollments_count=Count('enrollments', distinct=True),
         attempts_count=Count('results', distinct=True),
         avg_score=Avg('results__percentage')
     ).order_by('-created_at')
@@ -288,7 +291,7 @@ def teacher_dashboard(request):
         for quiz in quizzes
     ]
     
-    return render(request, 'teacher_dashboard.html', {'quiz_stats': quiz_stats})
+    return render(request, 'quizz_app/teacher_dashboard.html', {'quiz_stats': quiz_stats})
 
 
 @login_required
@@ -320,7 +323,7 @@ def teacher_statistics(request):
         'average_time': round(aggregate['average_time'] or 0, 2),
         'category_stats': category_stats,
     }
-    return render(request, 'teacher_statistics.html', context)
+    return render(request, 'quizz_app/teacher_statistics.html', context)
 
 
 @login_required
@@ -344,7 +347,7 @@ def manage_categories(request):
         return redirect('quizz_app:manage_categories')
 
     categories = Category.objects.filter(teacher=request.user)
-    return render(request, 'manage_categories.html', {'categories': categories})
+    return render(request, 'quizz_app/manage_categories.html', {'categories': categories})
 
 
 @login_required
@@ -401,9 +404,9 @@ def create_quiz(request):
             
         except (ValueError, KeyError) as e:
             context = {'error': str(e), 'form_data': request.POST}
-            return render(request, 'create_quiz.html', context, status=400)
+            return render(request, 'quizz_app/create_quiz.html', context, status=400)
     
-    return render(request, 'create_quiz.html', {
+    return render(request, 'quizz_app/create_quiz.html', {
         'categories': Category.objects.filter(teacher=request.user),
     })
 
@@ -442,7 +445,7 @@ def edit_quiz(request, quiz_id):
             
         except (ValueError, json.JSONDecodeError) as e:
             context = {'error': str(e), 'quiz': quiz, 'form_data': request.POST}
-            return render(request, 'edit_quiz.html', context, status=400)
+            return render(request, 'quizz_app/edit_quiz.html', context, status=400)
     
     context = {
         'quiz': quiz,
@@ -456,7 +459,7 @@ def edit_quiz(request, quiz_id):
             'questions': json.dumps(quiz.questions_data, ensure_ascii=False, indent=2)
         }
     }
-    return render(request, 'edit_quiz.html', context)
+    return render(request, 'quizz_app/edit_quiz.html', context)
 
 
 @login_required
@@ -468,7 +471,7 @@ def delete_quiz(request, quiz_id):
         quiz.delete()
         return redirect('quizz_app:teacher_dashboard')
     
-    return render(request, 'delete_quiz.html', {'quiz': quiz})
+    return render(request, 'quizz_app/delete_quiz.html', {'quiz': quiz})
 
 
 @login_required
@@ -486,7 +489,7 @@ def quiz_students(request, quiz_id):
         'total_attempts': stats['total_attempts'],
         'avg_score': round(stats['avg_score'] or 0, 2),
     }
-    return render(request, 'quiz_students.html', context)
+    return render(request, 'quizz_app/quiz_students.html', context)
 
 
 # ==========================================
@@ -538,7 +541,7 @@ def manage_live_session(request, session_id):
         'total_participants': participants.count(),
         'completed_count': participants.filter(completed=True).count(),
     }
-    return render(request, 'live_session_manage.html', context)
+    return render(request, 'quizz_app/live_session_manage.html', context)
 
 
 @login_required
@@ -555,7 +558,7 @@ def join_live_session(request):
                 status__in=['waiting', 'active']
             )
         except LiveSession.DoesNotExist:
-            return render(request, 'join_live_session.html', {'error': 'Código de sesión no válido o sesión no disponible'})
+            return render(request, 'quizz_app/join_live_session.html', {'error': 'Código de sesión no válido o sesión no disponible'})
         
         participant, created = LiveParticipant.objects.get_or_create(
             session=session,
@@ -564,11 +567,11 @@ def join_live_session(request):
         )
         
         if not created and participant.completed:
-            return render(request, 'join_live_session.html', {'error': 'Ya has completado esta sesión'})
+            return render(request, 'quizz_app/join_live_session.html', {'error': 'Ya has completado esta sesión'})
         
         return redirect('quizz_app:live_quiz', session_id=session.id, participant_id=participant.id)
     
-    return render(request, 'join_live_session.html')
+    return render(request, 'quizz_app/join_live_session.html')
 
 
 @login_required
@@ -612,7 +615,7 @@ def live_quiz(request, session_id, participant_id):
         'questions': questions,
         'participant': participant,
     }
-    return render(request, 'live_quiz.html', context)
+    return render(request, 'quizz_app/live_quiz.html', context)
 
 
 @login_required
@@ -652,7 +655,7 @@ def live_results(request, session_id, participant_id):
         'percentage': round(percentage, 1),
         'detailed_results': detailed_results,
     }
-    return render(request, 'live_results.html', context)
+    return render(request, 'quizz_app/live_results.html', context)
 
 
 def api_session_status(request, session_id):
@@ -696,4 +699,4 @@ def cybersecurity_quiz_view(request):
         'quiz': quiz,
         'questions': quiz.get_questions(),
     }
-    return render(request, 'quiz.html', context)
+    return render(request, 'quizz_app/quiz_detail.html', context)

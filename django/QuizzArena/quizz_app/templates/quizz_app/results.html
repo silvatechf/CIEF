@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'quizz_app/base.html' %}
 
 {% block title %}Resultados - QuizzMaster{% endblock %}
 
@@ -60,7 +60,7 @@
                                 {% if idx|stringformat:'s' == answer.correct_answer %}correct-answer{% endif %}
                                 {% if idx|stringformat:'s' == answer.user_answer and not answer.is_correct %}wrong-answer{% endif %}
                                 ">
-                                <span class="option-review-label">{{ forloop.counter|lower|slice:"0:1" }}</span>
+                                <span class="option-review-label">{% cycle 'A' 'B' 'C' 'D' 'E' 'F' %}</span>
                                 <span class="option-review-text">{{ option }}</span>
                                 {% if idx|stringformat:'s' == answer.correct_answer %}
                                     <span class="option-review-badge">✓ Correcta</span>

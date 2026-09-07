@@ -128,81 +128,81 @@
 
     <script src="{% static 'js/main.js' %}"></script>
     {% block extra_js %}{% endblock %}
+
+    <script>
+    // Toggle mobile menu
+    function toggleMenu() {
+        const navMenu = document.querySelector('.nav-menu');
+        navMenu.classList.toggle('active');
+    }
+
+    // Toggle dropdown menu
+    function toggleDropdown() {
+        const dropdown = document.querySelector('.dropdown-menu');
+        if (dropdown) {
+            dropdown.classList.toggle('active');
+        }
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const navDropdown = document.querySelector('.nav-dropdown');
+        const dropdown = document.querySelector('.dropdown-menu');
+        
+        if (navDropdown && !navDropdown.contains(event.target)) {
+            if (dropdown) dropdown.classList.remove('active');
+        }
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        const navbar = document.querySelector('.navbar');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        if (navbar && !navbar.contains(event.target)) {
+            navMenu.classList.remove('active');
+        }
+    });
+
+    // Logout function
+    function logout(e) {
+        e.preventDefault();
+        if (confirm('¿Estás seguro de que deseas salir?')) {
+            window.location.href = '{% url 'quizz_app:logout' %}';
+        }
+    }
+
+    // Login function
+    function login(e) {
+        e.preventDefault();
+        window.location.href = '{% url 'quizz_app:login' %}';
+    }
+
+    function showNotification(message, type = 'error') {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        container.appendChild(notification);
+        dismissNotification(notification);
+    }
+
+    function dismissNotification(notification) {
+        window.setTimeout(() => {
+            notification.classList.add('is-leaving');
+            window.setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    document.querySelectorAll('.notification').forEach(dismissNotification);
+
+    // Cerrar menú al hacer clic en un enlace
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const navMenu = document.querySelector('.nav-menu');
+            navMenu.classList.remove('active');
+        });
+    });
+    </script>
 </body>
 </html>
-<script>
-// Toggle mobile menu
-function toggleMenu() {
-    const navMenu = document.querySelector('.nav-menu');
-    navMenu.classList.toggle('active');
-}
-
-// Toggle dropdown menu
-function toggleDropdown() {
-    const dropdown = document.querySelector('.dropdown-menu');
-    if (dropdown) {
-        dropdown.classList.toggle('active');
-    }
-}
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-    const navDropdown = document.querySelector('.nav-dropdown');
-    const dropdown = document.querySelector('.dropdown-menu');
-    
-    if (navDropdown && !navDropdown.contains(event.target)) {
-        if (dropdown) dropdown.classList.remove('active');
-    }
-});
-
-// Close menu when clicking outside
-document.addEventListener('click', function(event) {
-    const navbar = document.querySelector('.navbar');
-    const toggle = document.querySelector('.menu-toggle');
-    const navMenu = document.querySelector('.nav-menu');
-    
-    if (!navbar.contains(event.target)) {
-        navMenu.classList.remove('active');
-    }
-});
-
-// Logout function
-function logout(e) {
-    e.preventDefault();
-    if (confirm('¿Estás seguro de que deseas salir?')) {
-        window.location.href = '{% url 'quizz_app:logout' %}';
-    }
-}
-
-// Login function
-function login(e) {
-    e.preventDefault();
-    window.location.href = '{% url 'quizz_app:login' %}';
-}
-
-function showNotification(message, type = 'error') {
-    const container = document.getElementById('notificationContainer');
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    container.appendChild(notification);
-    dismissNotification(notification);
-}
-
-function dismissNotification(notification) {
-    window.setTimeout(() => {
-        notification.classList.add('is-leaving');
-        window.setTimeout(() => notification.remove(), 300);
-    }, 5000);
-}
-
-document.querySelectorAll('.notification').forEach(dismissNotification);
-
-// Cerrar menú al hacer clic en un enlace
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const navMenu = document.querySelector('.nav-menu');
-        navMenu.classList.remove('active');
-    });
-});
-</script>

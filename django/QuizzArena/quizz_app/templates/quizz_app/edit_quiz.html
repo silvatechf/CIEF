@@ -1,12 +1,12 @@
-{% extends 'base.html' %}
+{% extends 'quizz_app/base.html' %}
 
-{% block title %}Crear Nuevo Ejercicio - QuizzMaster{% endblock %}
+{% block title %}Editar Ejercicio - QuizzMaster{% endblock %}
 
 {% block content %}
 <div class="container create-quiz-container">
     <div class="form-header">
-        <h1>➕ Crear Nuevo Ejercicio</h1>
-        <p>Configura un nuevo quiz para tus estudiantes</p>
+        <h1>✏️ Editar Ejercicio</h1>
+        <p>Actualiza la configuración de tu quiz</p>
     </div>
 
     <form method="post" class="quiz-form">
@@ -44,13 +44,15 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="category">Categoría *</label>
-                <select id="category" name="category" class="form-control" required>
-                    <option value="">Selecciona una categoría</option>
-                    {% for category in categories %}
-                        <option value="{{ category.name }}" {% if form_data.category == category.name %}selected{% endif %}>{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-                <small class="form-text"><a href="{% url 'quizz_app:manage_categories' %}">Gestionar categorías</a></small>
+                <input 
+                    type="text" 
+                    id="category" 
+                    name="category" 
+                    class="form-control" 
+                    placeholder="Ej: Matemáticas"
+                    value="{{ form_data.category }}"
+                    required
+                >
             </div>
 
             <div class="form-group">
@@ -72,7 +74,7 @@
                 name="time_limit" 
                 class="form-control" 
                 placeholder="Ej: 600 para 10 minutos (0 = sin límite)"
-                value="{{ form_data.time_limit|default:0 }}"
+                value="{{ form_data.time_limit }}"
                 min="0"
             >
             <small class="form-text">Dejar en 0 para ejercicio sin límite de tiempo</small>
@@ -111,8 +113,8 @@
         </div>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-success btn-large btn-pulse">✅ Crear Ejercicio</button>
-            <a href="{% url 'quizz_app:teacher_dashboard' %}" class="btn btn-secondary btn-large">❌ Cancelar</a>
+            <button type="submit" class="btn btn-primary btn-lg">✅ Guardar Cambios</button>
+            <a href="{% url 'quizz_app:teacher_dashboard' %}" class="btn btn-secondary btn-lg">❌ Cancelar</a>
         </div>
     </form>
 </div>
