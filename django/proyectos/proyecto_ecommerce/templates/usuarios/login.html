@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 450px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center">
+            <h3>Iniciar Sesión</h3>
+        </div>
+        <div class="card-body">
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST" action="">
+                {% csrf_token %}
+
+                {% if form %}
+                    {{ form.as_p }}
+                {% else %}
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Usuario</label>
+                        <input type="text" name="username" id="username" class="form-control" required placeholder="Ingresa tu usuario">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <input type="password" name="password" id="password" class="form-control" required placeholder="Ingresa tu contraseña">
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="text-center mt-3">
+        <p>¿No tienes cuenta? <a href="/usuarios/registro/">Regístrate aquí</a></p>
+    </div>
+</div>
+{% endblock %}

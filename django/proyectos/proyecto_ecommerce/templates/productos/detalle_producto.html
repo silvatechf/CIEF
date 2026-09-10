@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ producto.nombre }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Columna de Imágenes (Carrusel + Miniaturas) -->
+        <div class="col-md-6">
+            {% if producto.imagen %}
+                <!-- Carrusel Principal -->
+                <div id="carruselProducto" class="carousel slide border rounded p-2 mb-3" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                        <!-- Imagem Capa (Principal) -->
+                        <div class="carousel-item active">
+                            <img src="{{ producto.imagen.url }}" class="d-block w-100 rounded" alt="{{ producto.nombre }}" style="max-height: 400px; object-fit: contain;">
+                        </div>
+
+                        <!-- Galería de fotos secundarias -->
+                        {% for img in producto.galeria.all %}
+                            <div class="carousel-item">
+                                <img src="{{ img.imagen.url }}" class="d-block w-100 rounded" alt="Imagen {{ forloop.counter }} de {{ producto.nombre }}" style="max-height: 400px; object-fit: contain;">
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if producto.galeria.all %}
+                        <!-- Controles de navegación del carrusel -->
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carruselProducto" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon bg-dark rounded-circle" aria-hidden="true"></span>
+                            <span class="visually-hidden">Anterior</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carruselProducto" data-bs-slide="next">
+                            <span class="carousel-control-next-icon bg-dark rounded-circle" aria-hidden="true"></span>
+                            <span class="visually-hidden">Siguiente</span>
+                        </button>
+                    {% endif %}
+                </div>
+
+                <!-- Selector de Miniaturas (Capa + Galería) -->
+                {% if producto.galeria.all %}
+                    <div class="d-flex justify-content-center gap-2 mt-2">
+                        <!-- Miniatura Capa -->
+                        <img src="{{ producto.imagen.url }}" 
+                             data-bs-target="#carruselProducto" 
+                             data-bs-slide-to="0" 
+                             class="img-thumbnail active" 
+                             style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;">
+
+                        <!-- Miniaturas Extras de la Galería -->
+                        {% for img in producto.galeria.all %}
+                            <img src="{{ img.imagen.url }}" 
+                                 data-bs-target="#carruselProducto" 
+                                 data-bs-slide-to="{{ forloop.counter }}" 
+                                 class="img-thumbnail" 
+                                 style="width: 75px; height: 75px; object-fit: cover; cursor: pointer;">
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 350px;">
+                    Sin imagen disponible
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Columna de Información del Producto -->
+        <div class="col-md-6">
+            <h2>{{ producto.nombre }}</h2>
+            <p class="badge bg-primary">{{ producto.categoria.nombre }}</p>
+            
+            {% if producto.tiene_descuento %}
+                <h3 class="text-success my-3">
+                    <span class="text-decoration-line-through text-muted fs-5">${{ producto.precio }}</span>
+                    ${{ producto.precio_final }}
+                </h3>
+            {% else %}
+                <h3 class="text-success my-3">${{ producto.precio }}</h3>
+            {% endif %}
+
+            <p>{{ producto.descripcion }}</p>
+
+            <p class="text-muted">Stock disponible: <strong>{{ producto.stock }}</strong></p>
+            
+            <form action="{% url 'carrito:agregar' producto.id %}" method="POST" class="mt-4">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg" {% if not producto.en_stock %}disabled{% endif %}>
+                    {% if producto.en_stock %}Añadir al carrito{% else %}Sin Stock{% endif %}
+                </button>
+                <a href="{% url 'productos:listar' %}" class="btn btn-outline-secondary btn-lg ms-2">Volver</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

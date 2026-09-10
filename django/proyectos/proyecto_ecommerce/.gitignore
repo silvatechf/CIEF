@@ -1,0 +1,109 @@
+"""
+Archivo .gitignore para el proyecto Django Ecommerce.
+
+Este archivo especifica qué archivos no deben ser versionados en Git.
+"""
+
+# Entorno virtual
+env/
+venv/
+ENV/
+VENV/
+.env
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+
+# Datos sensibles
+secrets.json
+config/secret_settings.py
+
+# Archivos de caché
+.cache/
+*.cache
+
+# Node (si usas front-end con npm)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos de coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Compilados
+*.pyc
+*.so
+
+# Archivos de sincronización
+.Sync.ffs_tmp
+
+
+
+env/
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+media/
+.env

@@ -1,0 +1,247 @@
+"""
+=============================================================================
+              ECOMMERCE DJANGO - INSTALACIÓN PASO A PASO
+=============================================================================
+
+Este documento guía la instalación completa del ecommerce desde cero.
+Tiempo estimado: 10-15 minutos
+"""
+
+# PASO 1: PREPARAR EL ENTORNO
+# ============================
+
+# 1a. Abre tu terminal/PowerShell
+# 1b. Navega a la carpeta del proyecto:
+cd d:\ecommerce\proyecto_ecommerce
+
+# 1c. Crear entorno virtual (si aún no existe):
+python -m venv env
+
+# 1d. Activar entorno virtual:
+# En Windows:
+env\Scripts\activate
+# En Linux/macOS:
+source env/bin/activate
+
+# PASO 2: INSTALAR DEPENDENCIAS
+# ==============================
+
+pip install -r requirements.txt
+
+# O instalar manualmente:
+pip install Django==5.2.17 Pillow==10.0.0 python-decouple==3.8
+
+# PASO 3: PREPARAR LA BASE DE DATOS
+# ==================================
+
+# 3a. Aplicar migraciones (crear tablas):
+python manage.py migrate
+
+# Deberías ver algo como:
+# Operations to perform:
+#   Apply all migrations: admin, auth, contenttypes, sessions, productos, usuarios, carrito, pedidos
+# Running migrations:
+#   Applying contenttypes.0001_initial... OK
+#   ...y más migraciones
+
+# 3b. Crear superusuario (administrador):
+python manage.py createsuperuser
+
+# Te pedirá:
+#   Username: admin
+#   Email: admin@ejemplo.com
+#   Password: (escribe una contraseña segura, mínimo 8 caracteres)
+#   Password (again): (repite la contraseña)
+
+# PASO 4: CARGAR DATOS DE PRUEBA (OPCIONAL)
+# ===========================================
+
+python manage.py shell < cargar_datos.py
+
+# Esto creará:
+# - 3 categorías (Electrónica, Ropa, Libros)
+# - 6 productos de ejemplo
+# - 2 usuarios de prueba (juan, maria)
+# - Direcciones de envío
+
+# PASO 5: INICIAR EL SERVIDOR
+# ============================
+
+python manage.py runserver
+
+# Deberías ver:
+# Django version 5.2.17, using settings 'config.settings'
+# Starting development server at http://127.0.0.1:8000/
+# Quit the server with CONTROL-BREAK
+
+# PASO 6: ACCEDER A LA APLICACIÓN
+# ================================
+
+# Abre tu navegador y accede a:
+
+# 📍 Sitio principal:
+http://localhost:8000/
+
+# 🔑 Panel de administración:
+http://localhost:8000/admin/
+# Usa el usuario y contraseña que creaste en PASO 3
+
+# 🛍️ Productos:
+http://localhost:8000/productos/
+
+# 🛒 Carrito:
+http://localhost:8000/carrito/
+
+# PASO 7: EXPLORAR LA APLICACIÓN
+# ===============================
+
+# En el panel de admin (/admin/):
+# 1. Crear más productos y categorías
+# 2. Cambiar estado de pedidos
+# 3. Ver usuarios y perfiles
+# 4. Explorar las opciones de filtrado y búsqueda
+
+# PASO 8: PRÓXIMOS PASOS
+# =====================
+
+# Para seguir desarrollando:
+
+# a) Crear plantillas HTML personalizadas en templates/
+# b) Agregar estilos CSS en static/css/
+# c) Crear más funcionalidades
+# d) Implementar pasarela de pagos (Stripe, PayPal)
+# e) Agregar API REST con Django REST Framework
+# f) Configurar emails
+
+# COMANDOS ÚTILES
+# ===============
+
+# Ver todos los comandos disponibles:
+python manage.py help
+
+# Crear nuevas migraciones después de cambiar modelos:
+python manage.py makemigrations
+
+# Aplicar las migraciones:
+python manage.py migrate
+
+# Ejecutar tests:
+python manage.py test
+
+# Ver la base de datos en formato JSON:
+python manage.py dumpdata > datos.json
+
+# Restaurar datos desde JSON:
+python manage.py loaddata datos.json
+
+# Limpiar caché y archivos temporales:
+python manage.py clean_pyc
+python manage.py clear_cache
+
+# DETENER EL SERVIDOR
+# ====================
+
+# Presiona: CTRL + C en la terminal
+
+# DESACTIVAR ENTORNO VIRTUAL
+# ===========================
+
+deactivate
+
+# ESTRUCTURA DE CARPETAS CREADA
+# ==============================
+#
+# proyecto_ecommerce/
+# ├── manage.py                          # Script principal
+# ├── requirements.txt                   # Dependencias
+# ├── README.md                          # Documento de inicio
+# ├── DOCUMENTACION.md                   # Documentación completa
+# ├── GUIA_DESARROLLO.py                # Guía para desarrolladores
+# ├── cargar_datos.py                    # Script de datos de prueba
+# ├── INSTALACION.txt                    # Este archivo
+# │
+# ├── config/
+# │   ├── settings.py                   # Configuración principal
+# │   ├── urls.py                       # URLs del proyecto
+# │   └── wsgi.py                       # Configuración WSGI
+# │
+# ├── apps/
+# │   ├── productos/                    # App de productos
+# │   │   ├── models.py                # Categoría, Producto, Imagen
+# │   │   ├── views.py                 # Vistas de productos
+# │   │   ├── forms.py                 # Formularios
+# │   │   ├── urls.py                  # URLs
+# │   │   ├── admin.py                 # Admin personalizado
+# │   │   └── tests.py                 # Tests
+# │   │
+# │   ├── usuarios/                     # App de usuarios
+# │   │   ├── models.py                # Perfil, Dirección
+# │   │   ├── views.py                 # Login, Registro, Perfil
+# │   │   ├── forms.py                 # Formularios
+# │   │   ├── urls.py                  # URLs
+# │   │   └── admin.py                 # Admin personalizado
+# │   │
+# │   ├── carrito/                      # App de carrito
+# │   │   ├── models.py                # Carrito, ItemCarrito
+# │   │   ├── views.py                 # Vistas del carrito
+# │   │   ├── forms.py                 # Formularios
+# │   │   ├── urls.py                  # URLs
+# │   │   └── admin.py                 # Admin personalizado
+# │   │
+# │   └── pedidos/                      # App de pedidos
+# │       ├── models.py                # Pedido, ItemPedido, Factura
+# │       ├── views.py                 # Vistas de pedidos
+# │       ├── forms.py                 # Formularios
+# │       ├── urls.py                  # URLs
+# │       └── admin.py                 # Admin personalizado
+# │
+# ├── templates/                        # Plantillas HTML (crear aquí)
+# ├── static/                           # CSS, JS, imágenes (crear aquí)
+# │   ├── css/
+# │   └── js/
+# ├── media/                            # Archivos subidos (auto)
+# ├── logs/                             # Archivos de log (auto)
+# └── db.sqlite3                        # Base de datos SQLite (auto)
+
+# SOLUCIÓN DE PROBLEMAS
+# ======================
+
+# ❌ Error: "ModuleNotFoundError: No module named 'django'"
+# ✅ Solución: pip install Django==5.2.17
+
+# ❌ Error: "No such table: productos_producto"
+# ✅ Solución: python manage.py migrate
+
+# ❌ Error: "PermissionError" al cargar imágenes
+# ✅ Solución: Asegurar permisos en carpeta media/
+
+# ❌ La página de admin no carga
+# ✅ Solución: Asegurar que DEBUG=True en settings.py (para desarrollo)
+
+# ❌ No se ven los archivos CSS/imágenes
+# ✅ Solución: python manage.py collectstatic
+
+# SIGUIENTES PASOS RECOMENDADOS
+# ==============================
+
+# 1. Leer DOCUMENTACION.md completamente
+# 2. Explorar el panel de admin
+# 3. Crear categorías y productos
+# 4. Probar el flujo completo de compra
+# 5. Crear plantillas HTML personalizadas
+# 6. Implementar métodos de pago
+# 7. Configurar emails
+# 8. Desplegar a producción
+
+# DOCUMENTACIÓN OFICIAL
+# ======================
+
+# Django: https://docs.djangoproject.com/es/
+# Modelos: https://docs.djangoproject.com/es/5.0/topics/db/models/
+# Vistas: https://docs.djangoproject.com/es/5.0/topics/http/views/
+# Formularios: https://docs.djangoproject.com/es/5.0/topics/forms/
+# Admin: https://docs.djangoproject.com/es/5.0/ref/contrib/admin/
+# Testing: https://docs.djangoproject.com/es/5.0/topics/testing/
+
+# ¡ÉXITO EN TU DESARROLLO! 🚀
+# ============================
