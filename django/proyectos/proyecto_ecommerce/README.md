@@ -1,65 +1,64 @@
-Aqui está uma versão atualizada e profissional do arquivo `README.md`, refletindo as dependências exatas do projeto, os comandos corretos de execução/migração e documentando o **estado atual do desenvolvimento** com base nas correções recentes de auditoria e roteamento.
 
-```markdown
-# 🛒 Ecommerce Django — Guia de Inicio Rápido & Documentação do Estado
+# 🛒 Ecommerce Django — Guía de Inicio Rápido y Estado del Proyecto
 
-Sistema de E-commerce desenvolvido em Django com monitoramento e auditoria automática de eventos de usuários (acessos, buscas, visualização de produtos e auditoria de ações).
+Sistema de comercio electrónico desarrollado en Django con monitoreo y auditoría automática de eventos de usuarios (accesos, búsquedas, visualización de productos y registro de acciones).
 
 ---
 
-## 📌 Nível Atual do Projeto (Status do Desenvolvimento)
+## 📌 Estado Actual del Proyecto (Status de Desarrollo)
 
-O projeto encontra-se em estágio **Funcional / Beta Avançado**, com as seguintes implementações concluídas e estabilizadas:
+El proyecto se encuentra en etapa **Funcional / Beta Avanzada**, con las siguientes características e implementaciones estabilizadas:
 
-- **Autenticação e Usuários (`apps/usuarios`):** Cadastro, login, logout e fluxo de formulários isolados do middleware de rastreamento para evitar falhas no registro de novos clientes.
-- **Catálogo de Produtos e Categorías (`apps/productos`):**
-  - Listagem com suporte a paginação (12 por página), filtros por categoria e busca textual.
-  - Ordenação dinâmica e segura por parâmetros sanitizados (`nombre`, `precio`, `created_at`).
-  - Mapeamento de URLs corrigido: suporte a slugs dinâmicos de produtos sem conflitos com rotas estáticas (`/categorias/`, `/destacados/`).
-  - Suporte tanto a Views Baseadas en Funciones (FBV) quanto Views Baseadas en Clases (CBV).
-- **Sistema de Eventos e Auditoria (`apps/eventos`):**
-  - Middleware automatizado (`RastreadorEventosMiddleware`) capturando navegação e buscas no site (`GET`), ignorando rotas estáticas e de autenticação para otimização de performance.
-  - Registro à prova de falhas (`try-except` encapsulado) nas views principais e no middleware, garantindo alta disponibilidade da loja mesmo em caso de indisponibilidade da tabela de eventos.
+- **Autenticación y Usuarios (`apps/usuarios`):** Registro, inicio de sesión, cierre de sesión y flujo de formularios aislados del middleware de rastreo para prevenir fallos durante el registro de nuevos clientes.
+- **Catálogo de Productos y Categorías (`apps/productos`):**
+  - Listado con soporte para paginación (12 elementos por página), filtrado por categoría y búsqueda textual.
+  - Ordenamiento dinámico y seguro mediante parámetros sanitizados (`nombre`, `precio`, `created_at`).
+  - Mapeo de URLs corregido: soporte para slugs dinámicos de productos evitando conflictos con rutas estáticas (`/categorias/`, `/destacados/`).
+  - Compatibilidad con Vistas Basadas en Funciones (FBV) y Vistas Basadas en Clases (CBV).
+- **Sistema de Eventos y Auditoría (`apps/eventos`):**
+  - Middleware automatizado (`RastreadorEventosMiddleware`) que captura la navegación y las búsquedas en el sitio (`GET`), ignorando rutas estáticas y de autenticación para optimizar el rendimiento.
+  - Registro a prueba de fallos (encapsulado en bloques `try-except`) tanto en las vistas principales como en el middleware, garantizando alta disponibilidad de la tienda aunque la tabla de eventos no esté accesible.
 
 ---
 
-## 🚀 Como Executar o Projeto
+## 🚀 Cómo Ejecutar el Proyecto
 
-### 1. Clonar o repositório e preparar o ambiente virtual
+### 1. Clonar el repositorio y preparar el entorno virtual
 
 ```bash
-# Entrar na pasta do projeto
+# Entrar a la carpeta del proyecto
 cd proyecto_ecommerce
 
-# (Opcional, mas recomendado) Criar e ativar um ambiente virtual
+# Crear y activar un entorno virtual (recomendado)
 python -m venv venv
 
-# No Linux/macOS:
+# En Linux/macOS:
 source venv/bin/activate
-# No Windows (PowerShell):
+
+# En Windows (PowerShell):
 .\venv\Scripts\Activate.ps1
 
 ```
 
-### 2. Instalar as dependências
+### 2. Instalar las dependencias
 
-Se o seu projeto possuir um arquivo `requirements.txt`, execute:
+Si el proyecto cuenta con un archivo `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
 
 ```
 
-Caso esteja instalando manualmente as dependências principais:
+Si estás instalando manualmente las dependencias principales:
 
 ```bash
 pip install Django==5.0 Pillow
 
 ```
 
-### 3. Aplicar as Migrações do Banco de Dados
+### 3. Aplicar las migraciones a la base de datos
 
-Para gerar a estrutura das tabelas (Produtos, Categorias, Usuários e Eventos):
+Para generar y aplicar la estructura de tablas (Productos, Categorías, Usuarios y Eventos):
 
 ```bash
 python manage.py makemigrations
@@ -67,69 +66,69 @@ python manage.py migrate
 
 ```
 
-### 4. Criar Conta de Administrador (Superuser)
+### 4. Crear un superusuario (Administrador)
 
-Crie um usuário administrativo para acessar o painel de controle do Django:
+Crea una cuenta de administrador para gestionar la aplicación desde el panel de control de Django:
 
 ```bash
 python manage.py createsuperuser
 
 ```
 
-*(Preencha os campos solicitados: nome de usuário, e-mail e senha)*
+*(Ingresa los datos solicitados: usuario, correo electrónico y contraseña)*
 
-### 5. Iniciar o Servidor de Desenvolvimento
+### 5. Iniciar el servidor de desarrollo
 
-Para rodar a aplicação localmente:
+Para ejecutar la aplicación en entorno local:
 
 ```bash
 python manage.py runserver
 
 ```
 
-### 6. Acessar a Aplicação
+### 6. Acceder a la aplicación
 
-* **Loja (Página Inicial):** [http://localhost:8000/](http://localhost:8000/)
-* **Painel de Administração:** [http://localhost:8000/admin/](http://localhost:8000/admin/)
+* **Tienda (Página Principal):** [http://localhost:8000/](http://localhost:8000/)
+* **Panel de Administración:** [http://localhost:8000/admin/](http://localhost:8000/admin/)
 
 ---
 
-## 🔧 Comandos Úteis no Dia a Dia
+## 🔧 Comandos Frecuentes
 
 ```bash
-# Aplicar novas alterações de modelos ao banco de dados
+# Detectar cambios en los modelos y aplicarlos a la base de datos
 python manage.py makemigrations
 python manage.py migrate
 
-# Visualizar o status de todas as migrações
+# Consultar el estado de las migraciones
 python manage.py showmigrations
 
-# Abrir o console interativo do Django
+# Abrir la consola interactiva de Django
 python manage.py shell
 
-# Criar um novo módulo/aplicação
-python manage.py startapp nome_da_app
+# Crear un nuevo módulo o app
+python manage.py startapp nombre_de_la_app
 
-# Carregar massa de dados fictícios / testes (se houver fixtures)
+# Cargar datos iniciales o de prueba desde un archivo JSON
 python manage.py loaddata datos.json
 
-# Exportar dados atuais do banco para JSON
+# Exportar el contenido actual de la base de datos a JSON
 python manage.py dumpdata > datos.json
 
 ```
 
 ---
 
-## 📚 Arquitetura e Estrutura de Pastas
+## 📚 Arquitectura y Estructura del Proyecto
 
 ```text
 proyecto_ecommerce/
 ├── apps/
-│   ├── eventos/      # Middleware e logs de auditoria/rastreamento de ações
-│   ├── productos/    # Catálogo, categorias, busca e detalhes de produtos
-│   └── usuarios/     # Gestão de perfis, registro e autenticação
+│   ├── eventos/     # Middleware y logs de auditoría/rastreo de acciones
+│   ├── productos/   # Catálogo, categorías, búsqueda y detalle de productos
+│   └── usuarios/    # Gestión de perfiles, registro y autenticación
 ├── manage.py
-└── DOCUMENTACION.md  # Guia arquitetural completo
+└── DOCUMENTACION.md # Guía arquitectónica detallada
 
 ```
 
