@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Tareas</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      form {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      input, textarea, button {
+        padding: 10px;
+        font-size: 16px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .danger {
+        background: #d9534f;
+        color: white;
+        border: none;
+      }
+      .success {
+        background: #28a745;
+        color: white;
+        border: none;
+      }
+      .warning {
+        background: #f0ad4e;
+        color: black;
+        border: none;
+      }
+      #message {
+        margin-bottom: 16px;
+        min-height: 24px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gestión de tareas</h1>
+
+    <div id="message"></div>
+
+    <form id="tarea-form">
+      <input type="hidden" id="idTarea" />
+      <input type="text" id="titulo" placeholder="Título" required />
+      <textarea id="descripcion" placeholder="Descripción"></textarea>
+      <label>
+        <input type="checkbox" id="completada" /> Completada
+      </label>
+      <div class="actions">
+        <button type="submit" class="success">Guardar tarea</button>
+        <button type="button" id="cancelar" class="warning">Cancelar</button>
+      </div>
+    </form>
+
+    <h2>Listado de tareas</h2>
+    <ul id="lista-tareas"></ul>
+
+    <script>
+      const API_URL = 'http://127.0.0.1:8000/api/tareas/';
+      const form = document.getElementById('tarea-form');
+      const listaTareas = document.getElementById('lista-tareas');
+      const mensaje = document.getElementById('message');
+      const idTareaInput = document.getElementById('idTarea');
+      const tituloInput = document.getElementById('titulo');
+      const descripcionInput = document.getElementById('descripcion');
+      const completadaInput = document.getElementById('completada');
+      const cancelarBtn = document.getElementById('cancelar');
+
+      function showMessage(text, isError = false) {
+        mensaje.style.color = isError ? 'crimson' : 'green';
+        mensaje.textContent = text;
+      }
+
+      function resetForm() {
+        form.reset();
+        idTareaInput.value = '';
+      }
+
+      async function cargarTareas() {
+        try {
+          const response = await fetch(API_URL, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Error al cargar tareas');
+          }
+
+          const tareas = await response.json();
+          listaTareas.innerHTML = '';
+
+          if (!tareas.length) {
+            listaTareas.innerHTML = '<li>No hay tareas.</li>';
+            return;
+          }
+
+          tareas.forEach((tarea) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              <strong>- ${tarea.titulo}</strong><br>
+              ${tarea.descripcion || 'Sin descripción'}<br>
+              Estado: ${tarea.completada ? 'Completada' : 'Pendiente'}<br>
+              <div class="actions">
+                <button data-id="${tarea.id}" class="editar">Editar</button>
+                <button data-id="${tarea.id}" class="eliminar danger">Eliminar</button>
+              </div>
+            `;
+
+            listaTareas.appendChild(li);
+          });
+
+          document.querySelectorAll('.editar').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              prepararEdicion(Number(btn.dataset.id));
+            });
+          });
+
+          document.querySelectorAll('.eliminar').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              eliminarTarea(Number(btn.dataset.id));
+            });
+          });
+        } catch (error) {
+          showMessage(error.message, true);
+        }
+      }
+
+      async function prepararEdicion(id) {
+        try {
+          const response = await fetch(`${API_URL}${id}/`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (!response.ok) {
+            throw new Error('No se pudo cargar la tarea');
+          }
+
+          const tarea = await response.json();
+          idTareaInput.value = tarea.id;
+          tituloInput.value = tarea.titulo;
+          descripcionInput.value = tarea.descripcion || '';
+          completadaInput.checked = Boolean(tarea.completada);
+          showMessage(`Editando tarea #${tarea.id}`);
+        } catch (error) {
+          showMessage(error.message, true);
+        }
+      }
+
+      async function crearOActualizarTarea(event) {
+        event.preventDefault();
+
+        const payload = {
+          titulo: tituloInput.value.trim(),
+          descripcion: descripcionInput.value.trim(),
+          completada: completadaInput.checked
+        };
+
+        if (!payload.titulo) {
+          showMessage('El título es obligatorio', true);
+          return;
+        }
+
+        const id = idTareaInput.value;
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}${id}/` : API_URL;
+
+        try {
+          const response = await fetch(url, {
+            method,
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'No se pudo guardar la tarea');
+          }
+
+          showMessage(id ? 'Tarea actualizada correctamente' : 'Tarea creada correctamente');
+          resetForm();
+          cargarTareas();
+        } catch (error) {
+          showMessage(error.message, true);
+        }
+      }
+
+      async function eliminarTarea(id) {
+        if (!confirm('¿Seguro que quieres eliminar esta tarea?')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}${id}/`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (response.status !== 204 && !response.ok) {
+            throw new Error('No se pudo eliminar la tarea');
+          }
+
+          showMessage('Tarea eliminada');
+          resetForm();
+          cargarTareas();
+        } catch (error) {
+          showMessage(error.message, true);
+        }
+      }
+
+      cancelarBtn.addEventListener('click', () => {
+        resetForm();
+        showMessage('Edición cancelada');
+      });
+
+      form.addEventListener('submit', crearOActualizarTarea);
+      cargarTareas();
+    </script>
+  </body>
+</html>

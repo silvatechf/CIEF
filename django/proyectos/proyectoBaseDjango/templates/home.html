@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Home | DRF Tech{% endblock %}
+
+{% block content %}
+    <section class="hero card">
+        <div>
+            <span class="eyebrow">Innovation driven</span>
+            <h1>Build smarter systems with a modern digital edge.</h1>
+            <p class="lead">
+                Creamos experiencias rápidas, seguras y escalables con una arquitectura enfocada en rendimiento,
+                diseño limpio y tecnología de vanguardia.
+            </p>
+            <div class="actions">
+                <a href="#" class="btn btn-primary">Get started</a>
+                <a href="#" class="btn btn-secondary">View projects</a>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <strong>24/7</strong>
+                    <span>Monitoring</span>
+                </div>
+                <div class="stat">
+                    <strong>99.9%</strong>
+                    <span>Uptime</span>
+                </div>
+                <div class="stat">
+                    <strong>3x</strong>
+                    <span>Faster delivery</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="terminal" aria-label="Project status terminal">
+                <div><span class="prompt">$</span> deploy --production</div>
+                <div><span class="prompt">&gt;</span> API status: <span class="value">online</span></div>
+                <div><span class="prompt">&gt;</span> latency: <span class="value">42ms</span></div>
+                <div><span class="prompt">&gt;</span> security: <span class="value">encrypted</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid">
+        <article class="card feature">
+            <div class="feature-icon">⚡</div>
+            <h3>High performance</h3>
+            <p>Optimized architecture and clean workflows for faster product delivery.</p>
+        </article>
+
+        <article class="card feature">
+            <div class="feature-icon">🛡️</div>
+            <h3>Secure by default</h3>
+            <p>Protection, visibility, and control across the full digital stack.</p>
+        </article>
+
+        <article class="card feature">
+            <div class="feature-icon">🚀</div>
+            <h3>Scalable systems</h3>
+            <p>Built to grow with your business and adapt to every new challenge.</p>
+        </article>
+    </section>
+{% endblock %}
